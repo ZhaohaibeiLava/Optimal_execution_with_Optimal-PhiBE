@@ -11,6 +11,19 @@ from optimal_execution_phibe.config import GBMExecutionConfig
 from optimal_execution_phibe.envs import GBMExecutionEnv
 
 PolicyFn = Callable[..., float]
+INFO_ARRAY_KEYS = [
+    "pnl",
+    "transient_cost",
+    "temporary_cost",
+    "risk_cost",
+    "terminal_penalty",
+    "clipped_action",
+    "feasible_action_max",
+    "S",
+    "S_next",
+    "q_next",
+    "y_next",
+]
 
 
 def rollout_episode(
@@ -30,11 +43,13 @@ def rollout_episode(
         "truncated": [],
         "step_id": [],
     }
+    for key in INFO_ARRAY_KEYS:
+        rows[key] = []
 
     done = False
     while not done:
         action = _call_policy(policy_fn, obs, env.cfg, rng)
-        next_obs, reward, terminated, truncated, _ = env.step(action)
+        next_obs, reward, terminated, truncated, info = env.step(action)
         rows["obs"].append(obs)
         rows["actions"].append(float(action))
         rows["rewards"].append(float(reward))
@@ -42,11 +57,13 @@ def rollout_episode(
         rows["terminated"].append(bool(terminated))
         rows["truncated"].append(bool(truncated))
         rows["step_id"].append(env.step_count - 1)
+        for key in INFO_ARRAY_KEYS:
+            rows[key].append(float(info[key]))
 
         obs = next_obs
         done = terminated or truncated
 
-    return {
+    episode = {
         "obs": np.asarray(rows["obs"], dtype=np.float64),
         "actions": np.asarray(rows["actions"], dtype=np.float64),
         "rewards": np.asarray(rows["rewards"], dtype=np.float64),
@@ -55,6 +72,9 @@ def rollout_episode(
         "truncated": np.asarray(rows["truncated"], dtype=bool),
         "step_id": np.asarray(rows["step_id"], dtype=np.int64),
     }
+    for key in INFO_ARRAY_KEYS:
+        episode[key] = np.asarray(rows[key], dtype=np.float64)
+    return episode
 
 
 def generate_dataset(
@@ -82,15 +102,10 @@ def generate_dataset(
         )
 
     dataset = {
-        "obs": np.concatenate([ep["obs"] for ep in episodes], axis=0),
-        "actions": np.concatenate([ep["actions"] for ep in episodes], axis=0),
-        "rewards": np.concatenate([ep["rewards"] for ep in episodes], axis=0),
-        "next_obs": np.concatenate([ep["next_obs"] for ep in episodes], axis=0),
-        "terminated": np.concatenate([ep["terminated"] for ep in episodes], axis=0),
-        "truncated": np.concatenate([ep["truncated"] for ep in episodes], axis=0),
-        "episode_id": np.concatenate(episode_ids, axis=0),
-        "step_id": np.concatenate([ep["step_id"] for ep in episodes], axis=0),
+        key: np.concatenate([ep[key] for ep in episodes], axis=0)
+        for key in episodes[0]
     }
+    dataset["episode_id"] = np.concatenate(episode_ids, axis=0)
     return dataset
 
 

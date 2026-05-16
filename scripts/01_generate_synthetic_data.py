@@ -21,6 +21,8 @@ from optimal_execution_phibe.policies import (
     twap_policy,
 )
 
+SUMMARY_PATH = Path("output/synthetic_data_generation_summary_dt_0p025_seed_123.txt")
+
 
 def main() -> None:
     cfg = GBMExecutionConfig()
@@ -52,13 +54,23 @@ def main() -> None:
     initial_inventory = cfg.Q
     total_sold = initial_inventory - terminal_inventory
 
-    print(f"saved: {output_path}")
-    print(f"number of transitions: {dataset['rewards'].shape[0]}")
-    print(f"mean reward: {dataset['rewards'].mean():.6f}")
-    print(f"mean terminal inventory: {terminal_inventory.mean():.6f}")
-    print(f"mean total episode reward: {episode_rewards.mean():.6f}")
-    print(f"mean turnover / total sold: {total_sold.mean():.6f}")
-    print(f"fraction terminated by inventory: {dataset['terminated'][terminal_mask].mean():.6f}")
+    summary = "\n".join(
+        [
+            f"saved: {output_path}",
+            f"number of transitions: {dataset['rewards'].shape[0]}",
+            f"mean reward: {dataset['rewards'].mean():.6f}",
+            f"mean terminal inventory: {terminal_inventory.mean():.6f}",
+            f"mean total episode reward: {episode_rewards.mean():.6f}",
+            f"mean turnover / total sold: {total_sold.mean():.6f}",
+            f"fraction terminated by inventory: {dataset['terminated'][terminal_mask].mean():.6f}",
+        ]
+    )
+
+    SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SUMMARY_PATH.write_text(summary + "\n", encoding="utf-8")
+
+    print(summary)
+    print(f"wrote summary: {SUMMARY_PATH}")
 
 
 if __name__ == "__main__":
