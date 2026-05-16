@@ -1,0 +1,36 @@
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated data / outputs
+data/synthetic/
+outputs/
+logs/
+
+# Large generated artifacts
+*.npz
+*.npy
+*.parquet
+*.csv
+*.pt
+*.pth
+*.pkl
+*.pickle
+
+# IDE / system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Virtual environments / builds
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
