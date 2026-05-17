@@ -26,6 +26,8 @@ def test_saved_dataset_contains_required_keys(tmp_path) -> None:
         "terminated",
         "truncated",
         "episode_id",
+        "policy_id",
+        "policy_name",
         "step_id",
         *INFO_ARRAY_KEYS,
     }
@@ -54,6 +56,21 @@ def test_generated_states_and_rewards_are_valid() -> None:
     assert np.all(q >= -1e-10)
     assert np.all(prices > 0.0)
     assert np.all(np.isfinite(dataset["rewards"]))
+
+
+def test_policy_labels_are_saved_and_constant_within_episode() -> None:
+    dataset = _small_dataset()
+
+    assert dataset["policy_id"].shape == dataset["rewards"].shape
+    assert dataset["policy_name"].shape == dataset["rewards"].shape
+    assert set(np.unique(dataset["policy_name"])).issubset(
+        {"twap_policy", "random_feasible_policy"}
+    )
+
+    for episode_id in np.unique(dataset["episode_id"]):
+        mask = dataset["episode_id"] == episode_id
+        assert np.unique(dataset["policy_id"][mask]).shape[0] == 1
+        assert np.unique(dataset["policy_name"][mask]).shape[0] == 1
 
 
 def _small_dataset() -> dict[str, np.ndarray]:

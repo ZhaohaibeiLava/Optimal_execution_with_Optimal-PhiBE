@@ -92,20 +92,25 @@ def generate_dataset(
 
     episodes: list[dict[str, np.ndarray]] = []
     episode_ids: list[np.ndarray] = []
+    policy_ids: list[np.ndarray] = []
+    policy_names: list[np.ndarray] = []
     for episode_id in range(n_episodes):
         policy_idx = int(rng.choice(len(policies), p=probs))
         env = GBMExecutionEnv(cfg)
         episode = rollout_episode(env, policies[policy_idx], rng)
+        n_steps = episode["rewards"].shape[0]
         episodes.append(episode)
-        episode_ids.append(
-            np.full(episode["rewards"].shape[0], episode_id, dtype=np.int64)
-        )
+        episode_ids.append(np.full(n_steps, episode_id, dtype=np.int64))
+        policy_ids.append(np.full(n_steps, policy_idx, dtype=np.int64))
+        policy_names.append(np.full(n_steps, _policy_name(policies[policy_idx])))
 
     dataset = {
         key: np.concatenate([ep[key] for ep in episodes], axis=0)
         for key in episodes[0]
     }
     dataset["episode_id"] = np.concatenate(episode_ids, axis=0)
+    dataset["policy_id"] = np.concatenate(policy_ids, axis=0)
+    dataset["policy_name"] = np.concatenate(policy_names, axis=0)
     return dataset
 
 
@@ -137,3 +142,7 @@ def _normalize_policy_mixture(
     if not policies:
         raise ValueError("policy_mixture must not be empty.")
     return policies, None
+
+
+def _policy_name(policy_fn: PolicyFn) -> str:
+    return getattr(policy_fn, "__name__", policy_fn.__class__.__name__)
